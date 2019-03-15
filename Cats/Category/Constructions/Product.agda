@@ -151,6 +151,21 @@ module Build {lo la l≈} (Cat : Category lo la l≈) where
       times P P″ (λ i → y i ∘ x i)
     ∎
 
+  tim-fac : ∀ {li} {X} {I : Set li}
+     → {O O′ : I → Obj}
+     → (P : Product O) (P′ : Product O′)
+     → {x : ∀ i → X ⇒ O i} {y : ∀ i → O i ⇒ O′ i}
+     → times P P′ y ∘ factorizer P x ≈ factorizer P′ (λ i → y i ∘ x i)
+  tim-fac P P′ {x} {y} = 
+    begin 
+      times P P′ y ∘ factorizer P x
+    ≈⟨ factorizer-∘ P′ ⟩
+      factorizer P′ (λ i → (y i ∘ proj P i) ∘ factorizer P x)
+    ≈⟨ factorizer-resp P′ (λ i → assoc) ⟩
+      factorizer P′ (λ i → y i ∘ proj P i ∘ factorizer P x)
+    ≈⟨ factorizer-resp P′ (λ i → (∘-resp-r (factorizer-proj P))) ⟩
+      factorizer P′ (λ i → y i ∘ x i)
+    ∎
 
   proj-cancel : ∀ {li} {I : Set li} {O : I → Obj} {P proj}
     → IsProduct O P proj
@@ -311,7 +326,7 @@ record HasBinaryProducts {lo la l≈} (C : Category lo la l≈)
       = begin
           ⟨ g , h ⟩ ∘ f
         ≈⟨ Bld.factorizer-∘ (A ×′ B) ⟩
-          Bld.factorizer (A ×′ B)
+        Bld.factorizer (A ×′ B)
             (λ i → Bool-elim {A = λ i → Z ⇒ Bool-elim A B i} g h i ∘ f)
         ≈⟨ Bld.factorizer-resp (A ×′ B) (Bool-elim ≈.refl ≈.refl) ⟩
           ⟨ g ∘ f , h ∘ f ⟩
@@ -350,6 +365,21 @@ record HasBinaryProducts {lo la l≈} (C : Category lo la l≈)
         ≈⟨ Bld.times-resp (A ×′ B) (A″ ×′ B″) (Bool-elim ≈.refl ≈.refl) ⟩
           ⟨ f ∘ f′ × g ∘ g′ ⟩
         ∎
+
+  ⟨×⟩-∘-⟨,⟩ : ∀ {X A A′ B B′}
+         → {u : X ⇒ A}{v : X ⇒ A′}{f : A ⇒ B}{g : A′ ⇒ B′}
+         → ⟨ f × g ⟩ ∘ ⟨ u , v ⟩ ≈ ⟨ f ∘ u , g ∘ v ⟩
+  ⟨×⟩-∘-⟨,⟩ {X} {A} {A′} {B} {B′} {u} {v} {f} {g}
+    = begin
+        ⟨ f × g ⟩ ∘ ⟨ u , v ⟩
+      ≈⟨ Bld.tim-fac (A ×′ A′) (B ×′ B′) ⟩
+        Bld.factorizer (B ×′ B′) ( λ i →
+        Bool-elim {A = λ i → Bool-elim A A′ i ⇒ Bool-elim B B′ i} f g i ∘
+        Bool-elim {A = λ i → X ⇒ Bool-elim A A′ i} u v i)
+        -- {A = λ i → X ⇒ Bool-elim B B′ i} (f ∘ u) (g ∘ v) i)
+      ≈⟨ Bld.factorizer-resp (B ×′ B′) (Bool-elim ≈.refl ≈.refl) ⟩
+        ⟨ f ∘ u , g ∘ v ⟩
+      ∎
 
 
 -- The following is conceptually trivial, but we have to dig quite deep to
