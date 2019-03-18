@@ -1,6 +1,8 @@
 module Cats.Category.Constructions.Product where
 
-open import Data.Bool using (Bool ; true ; false ; not)
+open import Relation.Binary.PropositionalEquality as PropEq using (_≡_ ; refl)
+open import Data.Bool using (Bool ; true ; false ; not; if_then_else_)
+open import Relation.Binary.Core using (IsEquivalence)
 open import Level
 
 open import Cats.Category.Base
@@ -16,7 +18,6 @@ import Cats.Category.Constructions.Unique as Unique
 Bool-elim : ∀ {a} {A : Bool → Set a} → A true → A false → (i : Bool) → A i
 Bool-elim x y true = x
 Bool-elim x y false = y
-
 
 module Build {lo la l≈} (Cat : Category lo la l≈) where
 
@@ -42,6 +43,13 @@ module Build {lo la l≈} (Cat : Category lo la l≈) where
         → ∃![ u ] (xl ≈ projl ∘ u ∧ xr ≈ projr ∘ u)
 
 
+--  BinProduct→id-unique : ∀ {A B P} → {projl : P ⇒ A} → {projr : P ⇒ B}
+--                       → (y : IsBinaryProduct P projl projr)
+--                       → id ≈ (Unique.Build.∃!′.arr y)    
+--  BinProduct→id-unique = ? 
+--      ≈.trans (≈.sym (unique ((≈.sym id-r) , (≈.sym id-r)) )) {!arr!} 
+
+
   IsBinaryProduct→IsProduct : ∀ {A B P} {pl : P ⇒ A} {pr : P ⇒ B}
     → IsBinaryProduct P pl pr
     → IsProduct (Bool-elim A B) P (Bool-elim pl pr)
@@ -61,7 +69,7 @@ module Build {lo la l≈} (Cat : Category lo la l≈) where
       isProduct : IsProduct O prod proj
 
 
-  open Product using (proj ; isProduct)
+  open Product using (proj ; isProduct ; prod)
 
 
   instance
@@ -87,6 +95,7 @@ module Build {lo la l≈} (Cat : Category lo la l≈) where
 
 
   module _ {li} {I : Set li} {O : I → Obj} (P : Product O) where
+
 
     factorizer : ∀ {X} → (∀ i → X ⇒ O i) → X ⇒ P ᴼ
     factorizer proj = isProduct P proj ⃗
@@ -278,6 +287,7 @@ record HasBinaryProducts {lo la l≈} (C : Category lo la l≈)
   projl {A} {B} = Product.proj (A ×′ B) true
 
 
+
   projr : ∀ {A B} → A × B ⇒ B
   projr {A} {B} = Product.proj (A ×′ B) false
 
@@ -318,6 +328,24 @@ record HasBinaryProducts {lo la l≈} (C : Category lo la l≈)
 
   ⟨,⟩-projr : ∀ {A B Z} {f : Z ⇒ A} {g : Z ⇒ B} → projr ∘ ⟨ f , g ⟩ ≈ g
   ⟨,⟩-projr {A} {B} = Bld.factorizer-proj (A ×′ B)
+
+
+  data Singleton {a} {A : Set a} (x : A) : Set a where
+    _with≡_ : (y : A) → x ≡ y → Singleton x
+  
+  inspect : ∀ {a} {A : Set a} (x : A) → Singleton x
+  inspect x = x with≡ refl
+
+
+  ⟨projr,projl⟩-id : {A B : Obj} → ⟨ projl , projr ⟩ ≈ id {A × B}
+  ⟨projr,projl⟩-id {A} {B} with inspect (A ×′ B)
+  ... | record { prod = .(Product.prod (A ×′ B)) ; proj = proj ; isProduct = isProduct } with≡ refl with (isProduct proj)
+  ... | Unique.Build.∃!-intro arr prop unique = ≈.trans (≈.sym (unique (Bool-elim (≈.sym ⟨,⟩-projl) (≈.sym ⟨,⟩-projr))) ) (unique λ i → ≈.sym id-r) 
+
+
+
+--... | p (record { prod = prod' ; proj = proj ; isProduct = isProduct }) with (isProduct proj)
+--  ... | Unique.Build.∃!-intro arr prop unique = ≈.trans (≈.sym (unique (Bool-elim {!⟨,⟩-projl {A} {B}  {f = projl} {g = projr}!} {!!})) ) (unique λ i → ≈.sym id-r) 
 
 
   ⟨,⟩-∘ : ∀ {A B Y Z} {f : Y ⇒ Z} {g : Z ⇒ A} {h : Z ⇒ B}
